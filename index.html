@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFWaveCode - scCO2 Actinide Remediation System (DOE Phase I)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- MathJax Configuration & Script -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05070d;
+      color: #e2e8f0;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .formula-box {
+      background-color: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      color: #67e8f9;
+      font-size: 0.875rem;
+      overflow-x: auto;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#05070d] text-slate-100 antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
+          <i data-lucide="atom" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight text-white">RFWaveCode</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">DOE-EM PHASE I</span>
+          </div>
+          <p class="text-xs text-gray-400">Closed-Loop $sc\text{CO}_2$ Remediation & Volume Reduction Engine</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 bg-gray-900/60 p-1 rounded-xl border border-gray-800 text-xs sm:text-sm font-medium">
+        <button id="tabBtnSim" onclick="switchTab('sim')" class="px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+          <i data-lucide="gauge" class="w-4 h-4"></i>
+          <span>Live HUD</span>
+        </button>
+        <button id="tabBtnPhysics" onclick="switchTab('physics')" class="px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition text-gray-400 hover:text-gray-200">
+          <i data-lucide="binary" class="w-4 h-4"></i>
+          <span>Physics Model</span>
+        </button>
+        <button id="tabBtnProposal" onclick="switchTab('proposal')" class="px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition text-gray-400 hover:text-gray-200">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>$300k Proposal</span>
+        </button>
+        <button id="tabBtnARR" onclick="switchTab('arr')" class="px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition text-gray-400 hover:text-gray-200">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+          <span>Commercial ARR</span>
+        </button>
+      </nav>
+
+      <!-- System Health Indicator -->
+      <div class="hidden md:flex items-center space-x-3 text-xs font-mono">
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>CRITICAL POINT: ACTIVE</span>
+        </div>
+        <span class="text-gray-500">|</span>
+        <span class="text-gray-400">Target: Oak Ridge OREM</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Body -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: LIVE SIMULATION & TELEMETRY HUD     -->
+    <!-- ========================================== -->
+    <div id="viewSim" class="space-y-6">
+      <!-- Status & Top Metric Banner -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl backdrop-blur">
+          <div class="text-xs text-gray-400 font-medium flex items-center justify-between">
+            <span>Fluid Density ($\rho$)</span>
+            <i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="text-2xl font-mono font-bold text-white mt-1" id="dispDensity">784.2 kg/m³</div>
+          <div class="text-[11px] text-cyan-400 font-mono mt-0.5">High Solvation Regime</div>
+        </div>
+
+        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl backdrop-blur">
+          <div class="text-xs text-gray-400 font-medium flex items-center justify-between">
+            <span>Mass Stripped (Volume Cut)</span>
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="text-2xl font-mono font-bold text-emerald-400 mt-1" id="dispStripped">96.8%</div>
+          <div class="text-[11px] text-gray-400 font-mono mt-0.5">Baseline: EMWMF Free-Release</div>
+        </div>
+
+        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl backdrop-blur">
+          <div class="text-xs text-gray-400 font-medium flex items-center justify-between">
+            <span>Ligand Recycle Purity</span>
+            <i data-lucide="repeat" class="w-4 h-4 text-violet-400"></i>
+          </div>
+          <div class="text-2xl font-mono font-bold text-violet-300 mt-1" id="dispLigand">99.4%</div>
+          <div class="text-[11px] text-gray-400 font-mono mt-0.5">Zero Aqueous Effluent</div>
+        </div>
+
+        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl backdrop-blur">
+          <div class="text-xs text-gray-400 font-medium flex items-center justify-between">
+            <span>Disposal Cost Savings</span>
+            <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="text-2xl font-mono font-bold text-amber-300 mt-1" id="dispSavings">$18,420 / yd³</div>
+          <div class="text-[11px] text-amber-400/80 font-mono mt-0.5">vs. Engineered Landfill</div>
+        </div>
+      </div>
+
+      <!-- Main Interactive Section: Canvas + Control Panel -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Live Hardware & Fluid Extraction Vessel (Canvas) -->
+        <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-xl p-4 flex flex-col justify-between backdrop-blur relative overflow-hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <h2 class="font-semibold text-sm tracking-wide text-gray-200 uppercase font-mono">Autoclave Core: Micro-Emulsion Permeation</h2>
+            </div>
+            <span id="systemModeBadge" class="px-2.5 py-0.5 text-xs font-mono font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+              OPTIMAL SUPERCRITICAL PHASE
+            </span>
+          </div>
+
+          <!-- Vessel Canvas -->
+          <div class="relative w-full h-80 rounded-lg bg-[#03050a] border border-gray-950 overflow-hidden flex items-center justify-center">
+            <canvas id="extractionCanvas" class="w-full h-full block"></canvas>
+            <div class="absolute bottom-3 left-3 bg-gray-950/80 border border-gray-800/80 rounded px-2.5 py-1 text-[11px] font-mono text-gray-400 flex items-center space-x-3 backdrop-blur">
+              <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1"></span>Aggregate Matrix</span>
+              <span><span class="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1"></span>scCO2 + TBP Chelator</span>
+              <span><span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1"></span>Precipitated Heavy Ion Residue</span>
+            </div>
+          </div>
+
+          <!-- Quick Telemetry Footnote -->
+          <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-800/70 text-xs font-mono text-gray-400">
+            <div>Cell Volume: <span class="text-white font-semibold">500 mL Batch</span></div>
+            <div>Pressure Rating: <span class="text-white font-semibold">30.0 MPa</span></div>
+            <div>Temp Range: <span class="text-white font-semibold">31.1°C – 80.0°C</span></div>
+          </div>
+        </div>
+
+        <!-- Real-Time Hardware & Closed-Loop Controls -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 flex flex-col justify-between backdrop-blur">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+              <h3 class="font-semibold text-sm text-gray-200 flex items-center space-x-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+                <span>Supercritical Loop Controls</span>
+              </h3>
+              <button onclick="resetNominalParams()" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono underline">
+                Nominal
+              </button>
+            </div>
+
+            <!-- Slider 1: Pressure -->
+            <div class="mt-4 space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-gray-400">System Pressure ($P$)</span>
+                <span id="valPressure" class="text-cyan-400 font-semibold">22.4 MPa</span>
+              </div>
+              <input id="sliderPressure" type="range" min="5" max="32" step="0.2" value="22.4" 
+                class="w-full accent-cyan-400 bg-gray-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                <span>Subcritical (5 MPa)</span>
+                <span class="text-amber-500 font-semibold">P_c = 7.38 MPa</span>
+                <span>Max (32 MPa)</span>
+              </div>
+            </div>
+
+            <!-- Slider 2: Temperature -->
+            <div class="mt-4 space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-gray-400">Fluid Temperature ($T$)</span>
+                <span id="valTemp" class="text-cyan-400 font-semibold">45.0 °C</span>
+              </div>
+              <input id="sliderTemp" type="range" min="20" max="85" step="0.5" value="45.0" 
+                class="w-full accent-cyan-400 bg-gray-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                <span>Subcooled (20°C)</span>
+                <span class="text-amber-500 font-semibold">T_c = 31.1°C</span>
+                <span>Thermal Limit (85°C)</span>
+              </div>
+            </div>
+
+            <!-- Slider 3: Ligand Doping Concentration -->
+            <div class="mt-4 space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-gray-400">TBP/TTA Ligand Mole Fraction ($y_L$)</span>
+                <span id="valLigand" class="text-cyan-400 font-semibold">0.035 mol%</span>
+              </div>
+              <input id="sliderLigand" type="range" min="0.005" max="0.08" step="0.001" value="0.035" 
+                class="w-full accent-cyan-400 bg-gray-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                <span>Dilute (0.005%)</span>
+                <span>Saturation (0.080%)</span>
+              </div>
+            </div>
+
+            <!-- Injection Fault Testing -->
+            <div class="mt-5 pt-3 border-t border-gray-800 space-y-2">
+              <span class="text-xs font-semibold text-gray-300 uppercase tracking-wider font-mono">Stress Testing & Diagnostics</span>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="injectSubcriticalDrop()" class="px-2 py-2 text-xs font-mono font-medium rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 hover:bg-rose-900/40 transition text-left flex items-center space-x-1.5">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                  <span>Depressurize Fault</span>
+                </button>
+                <button onclick="triggerAutonomousRecovery()" class="px-2 py-2 text-xs font-mono font-medium rounded-lg bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/40 transition text-left flex items-center space-x-1.5">
+                  <i data-lucide="shield" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span>Auto-Observer Fix</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automated Observer Notification Banner -->
+          <div id="observerAlert" class="mt-4 p-2.5 rounded-lg bg-gray-950 border border-gray-800 text-[11px] font-mono text-gray-400 flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
+            <span id="observerAlertText">State Observer: Supercritical state stable within nominal EM clearance corridor.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnostic Charts: Phase Space + Extraction Kinetics -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Phase-Space Chart: Pressure vs Temperature -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-sm text-gray-200">Phase-Space Diagnostic: Operating Boundary</h3>
+              <p class="text-xs text-gray-400">Pressure vs. Temperature trajectory mapped against supercritical threshold</p>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+              Peng-Robinson EOS
+            </span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="phaseSpaceChart"></canvas>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-gray-400 pt-3 border-t border-gray-800/80">
+            <span>Critical Point: $T_c=31.1^\circ\text{C}$, $P_c=7.38\text{ MPa}$</span>
+            <span class="text-emerald-400">Target Envelope: $\rho > 700\text{ kg/m}^3$</span>
+          </div>
+        </div>
+
+        <!-- Extraction Kinetics & Decontamination Curve -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-sm text-gray-200">Decontamination Rate & Free-Release Cutoff</h3>
+              <p class="text-xs text-gray-400">Surrogate actinide removal from pore network vs. cycle time</p>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+              Clean Fill Target: &gt;95%
+            </span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="kineticsChart"></canvas>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-gray-400 pt-3 border-t border-gray-800/80">
+            <span>Cycle Residence: 120 mins</span>
+            <span class="text-cyan-400">Secondary Wastewater: 0.00 Gallons</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: CORE PHYSICS & MATHEMATICAL MODEL   -->
+    <!-- ========================================== -->
+    <div id="viewPhysics" class="hidden space-y-6">
+      <div class="border-b border-gray-800 pb-4">
+        <h2 class="text-xl font-bold text-white tracking-tight">Supercritical Fluid Decontamination & Transport Physics</h2>
+        <p class="text-sm text-gray-400 mt-1">Mathematical formulation of high-density extraction, organophosphorus ligand chelation, and non-destructive porous aggregate leaching.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Card 1: Supercritical Fluid Thermodynamics -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="p-1.5 rounded-lg bg-cyan-950 border border-cyan-500/40 text-cyan-400">
+              <i data-lucide="flame" class="w-4 h-4"></i>
+            </span>
+            <h3 class="font-semibold text-base text-gray-100">1. Thermodynamic Density & Peng-Robinson EOS</h3>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Supercritical carbon dioxide operates above its thermodynamic critical juncture ($T_c = 304.25\text{ K}$, $P_c = 7.38\text{ MPa}$). At high pressures ($>20\text{ MPa}$), $sc\text{CO}_2$ reaches liquid-like solvating densities while retaining near-gas diffusivity, enabling full penetration of concrete micro-pores.
+          </p>
+
+          <div class="formula-box">
+            $$P = \frac{RT}{v - b} - \frac{a(T)}{v(v + b) + b(v - b)}$$
+          </div>
+
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Where $a(T) = 0.45724 \frac{R^2 T_c^2}{P_c} \alpha(T)$ and $b = 0.07780 \frac{R T_c}{P_c}$. Solvation power scales non-linearly with fluid density $\rho$:
+          </p>
+
+          <div class="formula-box">
+            $$\ln S = \ln S_0 + \frac{k_B T \cdot \rho}{\kappa_T} + \Delta v^\ddagger \frac{(P - P_c)}{RT}$$
+          </div>
+          <p class="text-[11px] text-gray-500">By maintaining $\rho > 750\text{ kg/m}^3$, the dissolution equilibrium shifts four orders of magnitude relative to subcritical gas phases.</p>
+        </div>
+
+        <!-- Card 2: Coordination Chemistry & Extraction Equilibria -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="p-1.5 rounded-lg bg-emerald-950 border border-emerald-500/40 text-emerald-400">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+            </span>
+            <h3 class="font-semibold text-base text-gray-100">2. Ligand Chelation Coordination Equilibrium</h3>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Actinide surrogate cations ($\text{UO}_2^{2+}$, $\text{Ce}^{4+}$, $\text{Eu}^{3+}$) are ionic and insoluble in non-polar neat $\text{CO}_2$. Doping the fluid with organophosphorus complexes (TBP: tri-$n$-butyl phosphate) and fluorinated $\beta$-diketones (HTTA) encapsulates metal charges inside lipophilic envelopes:
+          </p>
+
+          <div class="formula-box">
+            $$\text{UO}_2^{2+}{}_{(\text{pore})} + 2\text{NO}_3^- + 2\text{TBP}_{(\text{sc})} \rightleftharpoons \text{UO}_2(\text{NO}_3)_2(\text{TBP})_2{}_{(\text{sc})}$$
+          </div>
+
+          <p class="text-xs text-gray-400 leading-relaxed">
+            The multi-phase partition coefficient $K_D$ governs total extraction efficiency across pore surface boundaries:
+          </p>
+
+          <div class="formula-box">
+            $$K_D = \frac{[\text{Actinide}]_{\text{fluid}}}{[\text{Actinide}]_{\text{matrix}}} = K_{\text{ext}} \cdot [\text{TBP}]^2_{\text{sc}} \cdot [\text{NO}_3^-]^2_{\text{eff}}$$
+          </div>
+          <p class="text-[11px] text-gray-500">Hydrophobic fluorinated shells shield the coordinate core, enabling neutral dissolution directly into supercritical continuous media.</p>
+        </div>
+
+        <!-- Card 3: Intra-Pore Knudsen Diffusion Kinetics -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="p-1.5 rounded-lg bg-violet-950 border border-violet-500/40 text-violet-400">
+              <i data-lucide="git-commit" class="w-4 h-4"></i>
+            </span>
+            <h3 class="font-semibold text-base text-gray-100">3. Intra-Pore Knudsen & Molecular Mass Transfer</h3>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Unlike viscous aqueous acids that exhibit severe boundary layer resistance in fine micro-cracks ($<50\text{ nm}$), $sc\text{CO}_2$ exhibits zero surface tension and an effective diffusion coefficient $D_{\text{eff}}$ three orders higher than liquid water:
+          </p>
+
+          <div class="formula-box">
+            $$\frac{1}{D_{\text{eff}}} = \frac{\tau}{\varepsilon} \left( \frac{1}{D_{\text{bulk}}} + \frac{1}{D_{\text{Knudsen}}} \right), \quad D_{\text{Knudsen}} = \frac{d_{\text{pore}}}{3} \sqrt{\frac{8 R T}{\pi M}}$$
+          </div>
+
+          <p class="text-xs text-gray-400 leading-relaxed">
+            The 1D transient radial leaching within concrete aggregate rubble is modeled via Fick's Second Law with interfacial desorption sink terms:
+          </p>
+
+          <div class="formula-box">
+            $$\frac{\partial C_s}{\partial t} = \frac{D_{\text{eff}}}{r^2} \frac{\partial}{\partial r}\left( r^2 \frac{\partial C_s}{\partial r} \right) - k_{\text{desorp}}(C_s - C_{\text{sat}})$$
+          </div>
+          <p class="text-[11px] text-gray-500">This achieves deep extraction without mechanical crushing beyond coarse 0.5-inch gravel sizes.</p>
+        </div>
+
+        <!-- Card 4: Observer Algorithm & Depressurization Recovery -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="p-1.5 rounded-lg bg-amber-950 border border-amber-500/40 text-amber-400">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+            </span>
+            <h3 class="font-semibold text-base text-gray-100">4. Real-Time Observer Inversion & Closed-Loop Loopback</h3>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Downstream dry precipitation is achieved entirely via controlled isenthalpic flash depressurization ($\Delta P < P_c$). As solvating power collapses, heavy complexes drop out as dry crystals while $100\%$ of $\text{CO}_2$ and ligands are recycled:
+          </p>
+
+          <div class="formula-box">
+            $$\hat{x}_{k+1} = \mathbf{A}\hat{x}_k + \mathbf{B}u_k + \mathbf{L}\Big(y_k - \mathbf{C}\hat{x}_k\Big), \quad u_k = -\mathbf{K}\hat{x}_k$$
+          </div>
+
+          <p class="text-xs text-gray-400 leading-relaxed">
+            The observer estimates real-time fluid density $\hat{\rho}$ and aggregate boundary clearance from high-speed in-situ acoustic time-of-flight and pressure transducers, preventing inadvertent subcritical aerosol carryover.
+          </p>
+
+          <div class="formula-box">
+            $$\text{Clearance Verification: } \int_0^{t_{\text{cycle}}} \dot{m}_{\text{chel}} \cdot dt \ge M_{\text{initial}} \times 0.95$$
+          </div>
+          <p class="text-[11px] text-gray-500">Guarantees verifiable compliance before batch autoclave decompression and free-release disposal.</p>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: $300,000 DOE SBIR PHASE I PROPOSAL  -->
+    <!-- ========================================== -->
+    <div id="viewProposal" class="hidden space-y-6">
+      <!-- Title & Header Block -->
+      <div class="bg-gradient-to-r from-cyan-950/40 via-gray-900/60 to-gray-900/40 border border-cyan-500/30 rounded-xl p-6 backdrop-blur">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+            DOE SBIR PHASE I • FY 2026/2027
+          </span>
+          <span class="text-xs font-mono text-gray-400">Solicitation Topic: Environmental Management (EM)</span>
+        </div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">
+          Closed-Loop Supercritical Fluid Decontamination ($sc\text{CO}_2$) for High-Volume Rubble Clearance & Waste Volume Minimization
+        </h1>
+        <p class="text-sm text-cyan-200/80 mt-1">
+          Target Site: Oak Ridge Reservation (OREM / ORNL), Oak Ridge, Tennessee
+        </p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-800 text-xs font-mono">
+          <div>
+            <div class="text-gray-400">Award Ceiling:</div>
+            <div class="text-white font-bold text-sm">$300,000 (Phase I)</div>
+          </div>
+          <div>
+            <div class="text-gray-400">Duration:</div>
+            <div class="text-white font-bold text-sm">6 Months (Fast-Track)</div>
+          </div>
+          <div>
+            <div class="text-gray-400">Awardee Entity:</div>
+            <div class="text-white font-bold text-sm">RFWaveCode LLC</div>
+          </div>
+          <div>
+            <div class="text-gray-400">Technical Readiness:</div>
+            <div class="text-white font-bold text-sm">TRL 3 $\rightarrow$ TRL 5</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Problem Statement & Elimination of Flaws -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <h3 class="font-semibold text-sm text-rose-400 flex items-center space-x-2">
+            <i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>
+            <span>Flaws Removed from Prior Concept</span>
+          </h3>
+          <ul class="text-xs text-gray-400 space-y-2 mt-3 list-disc list-inside leading-relaxed">
+            <li><strong class="text-gray-200">Zero Unfeasible Deep Boreholes:</strong> Eliminated regulatory non-starter of drilling 5,000m unpermitted crystalline boreholes at Oak Ridge.</li>
+            <li><strong class="text-gray-200">Zero Pyrochemistry Scope-Creep:</strong> Dropped out-of-scope Gen-IV commercial reactor actinide fuel harvesting.</li>
+            <li><strong class="text-gray-200">100% Focused Phase I:</strong> Concentrated all resources into single high-priority DOE-EM bottleneck: soil and concrete rubble clearance.</li>
+          </ul>
+        </div>
+
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <h3 class="font-semibold text-sm text-amber-400 flex items-center space-x-2">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i>
+            <span>The Oak Ridge Bottleneck</span>
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed mt-3">
+            The Environmental Management Waste Management Facility (EMWMF) is nearing maximum capacity, and the planned Environmental Management Disposal Facility (EMDF) is high-cost. Over 80% of rubble consists of non-radioactive bulk concrete carrying surface and shallow intra-pore contamination that currently forces entire structural masses into expensive engineered landfill disposal.
+          </p>
+        </div>
+
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+          <h3 class="font-semibold text-sm text-emerald-400 flex items-center space-x-2">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>The RFWaveCode Solution</span>
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed mt-3">
+            Deploy automated closed-loop $sc\text{CO}_2$ wash cycles. Solubilize actinides directly from coarse aggregate without liquid water or secondary liquid effluent. Precipitate dry solid residue for standard vitrification, while diverting &gt;95% of aggregate mass to clean fill or free release.
+          </p>
+        </div>
+      </div>
+
+      <!-- $300,000 Budget Breakdown -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+        <h3 class="font-semibold text-sm text-white mb-3 flex items-center space-x-2">
+          <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i>
+          <span>Phase I Budget Allocation ($300,000 Strict Cost Breakdown)</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-gray-800 text-gray-400">
+                <th class="pb-2">Cost Category</th>
+                <th class="pb-2">Allocation</th>
+                <th class="pb-2">Percentage</th>
+                <th class="pb-2">Primary Scope Deliverable</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800 text-gray-300">
+              <tr>
+                <td class="py-2.5 font-semibold text-white">Direct Labor (PI, Lead Chemical Eng, Observer Dev)</td>
+                <td>$128,500</td>
+                <td>42.8%</td>
+                <td>Peng-Robinson thermodynamic modeling, extraction protocols, system controls</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-semibold text-white">Bench Hardware & Extraction Autoclave Cell</td>
+                <td>$74,000</td>
+                <td>24.7%</td>
+                <td>500 mL 30 MPa closed-loop autoclave test cell, high-pressure syringe pumps, valving</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-semibold text-white">Materials, Chelating Reagents & Surrogates</td>
+                <td>$29,500</td>
+                <td>9.8%</td>
+                <td>Fluorinated $\beta$-diketones, TBP, certified concrete matrices, Cerium/Europium surrogates</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-semibold text-white">Analytical Characterization (ICP-MS & Porosimetry)</td>
+                <td>$32,000</td>
+                <td>10.7%</td>
+                <td>Pre- and post-extraction ICP-MS isotopic assays, BET surface area, pore depth validation</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-semibold text-white">Indirect Costs / Fringe / QA Oversight</td>
+                <td>$36,000</td>
+                <td>12.0%</td>
+                <td>DOE-compliant accounting, project management, safety oversight, reporting</td>
+              </tr>
+              <tr class="bg-cyan-950/20 text-cyan-300 font-bold">
+                <td class="py-2.5">Total Phase I Expenditure</td>
+                <td>$300,000</td>
+                <td>100.0%</td>
+                <td>Comprehensive TRL 3 $\rightarrow$ TRL 5 validation over 6-month performance period</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Work Plan: 4 Concise Tasks Across 6 Months -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur space-y-4">
+        <h3 class="font-semibold text-sm text-white flex items-center space-x-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+          <span>Phase I Work Breakdown Structure & Milestones (Months 1–6)</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-lg bg-gray-950/60 border border-gray-800">
+            <div class="flex items-center justify-between text-xs font-mono text-cyan-400 mb-1">
+              <span>Task 1: Months 1–2</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-[10px]">Model & Setup</span>
+            </div>
+            <h4 class="text-sm font-semibold text-white">Thermodynamic & Coordination Equilibrium Modeling</h4>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Formulate Peng-Robinson density envelopes and multi-component chelation equilibrium models for surrogate heavy ions. Finalize procurement and assemble the 500 mL 30 MPa bench extraction test rig.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-lg bg-gray-950/60 border border-gray-800">
+            <div class="flex items-center justify-between text-xs font-mono text-emerald-400 mb-1">
+              <span>Task 2: Months 3–4</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[10px]">Bench Validation</span>
+            </div>
+            <h4 class="text-sm font-semibold text-white">Surrogate Leaching Trials & Kinetic Optimization</h4>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Subject surrogate-doped concrete aggregate to closed-loop $sc\text{CO}_2$ runs across pressures from 12 to 28 MPa and temperatures from 35°C to 65°C. Quantify extraction efficiency using ICP-MS. Target: &gt;95% mass removal.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-lg bg-gray-950/60 border border-gray-800">
+            <div class="flex items-center justify-between text-xs font-mono text-violet-400 mb-1">
+              <span>Task 3: Month 5</span>
+              <span class="px-2 py-0.5 rounded bg-violet-950 border border-violet-800 text-[10px]">Closed Loop</span>
+            </div>
+            <h4 class="text-sm font-semibold text-white">Precipitation Separation & Closed-Loop Ligand Recycling</h4>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Validate flash depressurization chamber for spontaneous precipitation of chelated solids. Verify gas recompression loop achieves &gt;99% solvent recovery with zero hazardous liquid waste generated.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-lg bg-gray-950/60 border border-gray-800">
+            <div class="flex items-center justify-between text-xs font-mono text-amber-400 mb-1">
+              <span>Task 4: Month 6</span>
+              <span class="px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-[10px]">Transition</span>
+            </div>
+            <h4 class="text-sm font-semibold text-white">Technoeconomic Synthesis & Phase II Scaling Design</h4>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              Deliver comprehensive life-cycle cost model verifying &gt;50% disposal cost reduction for OREM. Author complete engineering design package for trailer-mounted 500-liter skid system for Phase II demonstration.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase II Transition Plan -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+        <h3 class="font-semibold text-sm text-cyan-300 mb-2 flex items-center space-x-2">
+          <i data-lucide="arrow-up-right" class="w-4 h-4 text-cyan-400"></i>
+          <span>Direct Phase II Scaling Pathway ($1.2M – $1.5M DOE Phase II)</span>
+        </h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Following Phase I bench validation, RFWaveCode will engineer a modular, skid-mounted continuous extraction module (CEM-500) capable of processing 2.5 metric tons of concrete rubble per 8-hour shift. Phase II testing will transition from surrogate dopants to certified Oak Ridge Reservation non-fissile legacy core samples under an OREM CRADA (Cooperative Research and Development Agreement), positioning the technology for rapid site deployment at Y-12 and ORNL cleanup zones.
+        </p>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 4: COMMERCIAL & NATIONWIDE ARR         -->
+    <!-- ========================================== -->
+    <div id="viewARR" class="hidden space-y-6">
+      
+      <!-- Executive Summary Card -->
+      <div class="bg-gradient-to-r from-violet-950/40 via-gray-900/60 to-cyan-950/40 border border-violet-500/30 rounded-xl p-6 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/40">
+            COMMERCIAL GROWTH & LICENSING STRATEGY
+          </span>
+          <span class="text-xs font-mono text-emerald-400">Total Mature ARR Target: $242.5M</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Nationwide Civil Remediation & SaaS Infrastructure ARR</h2>
+        <p class="text-xs text-gray-300 mt-1 max-w-3xl leading-relaxed">
+          While DOE-EM provides initial non-dilutive development funding, RFWaveCode monetizes proprietary supercritical cycle optimization, predictive pore-diffusion firmware, and autonomous state observer suites via a hybrid Hardware-as-a-Service (HaaS) and recurring SaaS licensing model across high-value industrial contamination and critical mineral sectors.
+        </p>
+        <div class="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-mono text-gray-400 uppercase">Implied Enterprise Valuation (10x Software Multiple)</div>
+            <div class="text-2xl font-mono font-bold text-cyan-400">$2.42 Billion</div>
+          </div>
+          <a href="mailto:support@rfwavecode.com" class="px-4 py-2 rounded-lg bg-cyan-500 text-black font-semibold text-xs flex items-center space-x-2 hover:bg-cyan-400 transition">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            <span>Inquire at support@rfwavecode.com</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Nationwide ARR Breakdown Table -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur">
+        <h3 class="font-semibold text-sm text-white mb-3 flex items-center space-x-2">
+          <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i>
+          <span>Nationwide Commercial ARR Distribution Matrix</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-gray-800 text-gray-400">
+                <th class="pb-2">Commercial / Civil Sector</th>
+                <th class="pb-2">Target Asset Base</th>
+                <th class="pb-2">Software / SaaS Metric</th>
+                <th class="pb-2 text-right">Mature Annual ARR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800 text-gray-300">
+              <tr>
+                <td class="py-3 font-semibold text-white">Commercial Nuclear Decommissioning</td>
+                <td>24 Active Reactor Decom Sites</td>
+                <td>$2.5M / site / yr runtime observer license</td>
+                <td class="text-right text-cyan-400 font-bold">$60.0M</td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-white">DOE & National Lab Complex Services</td>
+                <td>16 Complex Cleanup Programs</td>
+                <td>$3.2M / site enterprise automation SaaS</td>
+                <td class="text-right text-cyan-400 font-bold">$51.2M</td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-white">Rare Earth Elements (REE) Acidless Extraction</td>
+                <td>35 Phosphate & Tailings Facilities</td>
+                <td>$1.8M / plant process optimization license</td>
+                <td class="text-right text-cyan-400 font-bold">$63.0M</td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-white">Heavy Industrial PFAS / Heavy Metal Soil Remediation</td>
+                <td>75 High-Priority Superfund Locations</td>
+                <td>$450k / location autonomous controller license</td>
+                <td class="text-right text-cyan-400 font-bold">$33.7M</td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-white">Defense Infrastructure Site Clearance (Formerly Used Sites)</td>
+                <td>28 Legacy Federal Cleanup Areas</td>
+                <td>$1.2M / facility mobile skid firmware</td>
+                <td class="text-right text-cyan-400 font-bold">$33.6M</td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-white">Lead & Toxic Ash Hydrometallurgical Recycling</td>
+                <td>12 Smelter & E-Waste Slag Plants</td>
+                <td>$850k / plant continuous flash firmware</td>
+                <td class="text-right text-cyan-400 font-bold">$10.2M</td>
+              </tr>
+              <tr class="bg-violet-950/20 text-emerald-400 font-bold text-sm">
+                <td class="py-3">Combined Total Addressable ARR</td>
+                <td colspan="2">190+ Nationwide Facilities & Process Trains</td>
+                <td class="text-right text-emerald-400">$251.7M / yr</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detailed Vertical Deep Dive Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Deep Dive 1: Commercial Nuclear Decom -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm text-cyan-300">1. Commercial Nuclear Power Decommissioning</h4>
+            <span class="text-xs font-mono text-cyan-400 font-semibold">$60.0M ARR</span>
+          </div>
+          <div class="text-xs text-gray-300">
+            <strong class="text-gray-400">Physics in 1 Sentence:</strong> Supercritical carbon dioxide doped with organophosphorus ligands penetrates micro-fissures in reactor containment walls without liquid water, solubilizing activation and contamination isotopes for spontaneous dry precipitation upon flash decompression.
+          </div>
+          <div class="text-xs text-gray-400">
+            <strong class="text-amber-400">Why Others Missed This (Plain English for Execs):</strong> Incumbents traditionally smash entire structures and haul wet slurry or million-ton rubble chunks across state lines to high-cost radioactive repositories; RFWaveCode eliminates 95% of disposal volume on-site without creating secondary contaminated wastewater.
+          </div>
+        </div>
+
+        <!-- Deep Dive 2: Rare Earth Processing -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm text-cyan-300">2. Critical Minerals & Rare Earth Elements (REE)</h4>
+            <span class="text-xs font-mono text-cyan-400 font-semibold">$63.0M ARR</span>
+          </div>
+          <div class="text-xs text-gray-300">
+            <strong class="text-gray-400">Physics in 1 Sentence:</strong> Tuneable $sc\text{CO}_2$ fluid density acts as a variable dielectric solvent, enabling precise selective partition fractionation of neodymium and dysprosium from phosphogypsum tailings using zero toxic mineral acids.
+          </div>
+          <div class="text-xs text-gray-400">
+            <strong class="text-amber-400">Why Others Missed This (Plain English for Execs):</strong> Legacy processors drown ore in thousands of tons of sulfuric acid, creating vast toxic retention ponds; RFWaveCode runs a closed-loop gas cycle that leaves bone-dry clean gravel and instantly recycles 99.4% of its solvent.
+          </div>
+        </div>
+
+        <!-- Deep Dive 3: DOE Complex EM Services -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm text-cyan-300">3. DOE Complex EM Environmental Services</h4>
+            <span class="text-xs font-mono text-cyan-400 font-semibold">$51.2M ARR</span>
+          </div>
+          <div class="text-xs text-gray-300">
+            <strong class="text-gray-400">Physics in 1 Sentence:</strong> Knudsen-dominated diffusion within sub-micron pore structures desorbs legacy actinide cations without altering the structural compressive integrity of the parent concrete matrix.
+          </div>
+          <div class="text-xs text-gray-400">
+            <strong class="text-amber-400">Why Others Missed This (Plain English for Execs):</strong> DOE-EM sites assumed that aggregate declassification was economically impossible and accepted billions in future landfill construction; our autonomous software proves real-time free-release compliance directly at the autoclave nozzle.
+          </div>
+        </div>
+
+        <!-- Deep Dive 4: Heavy Metal Superfund -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-5 backdrop-blur space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm text-cyan-300">4. Industrial Heavy Metal & PFAS Superfund Remediation</h4>
+            <span class="text-xs font-mono text-cyan-400 font-semibold">$33.7M ARR</span>
+          </div>
+          <div class="text-xs text-gray-300">
+            <strong class="text-gray-400">Physics in 1 Sentence:</strong> Dual-functional fluoro-chelators in supercritical continuous phase sweep non-polar fluorinated compounds (PFAS) and heavy metals simultaneously into a single dry separation train.
+          </div>
+          <div class="text-xs text-gray-400">
+            <strong class="text-amber-400">Why Others Missed This (Plain English for Execs):</strong> Incumbents spend millions on thermal incinerators that risk air pollution emissions; RFWaveCode captures everything inside an enclosed pressure loop with zero airborne or hydraulic release.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Direct Collaboration CTA Block -->
+      <div class="p-6 rounded-xl bg-gray-900/60 border border-cyan-500/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h4 class="text-base font-bold text-white">Commercial Partnering & License Deployment</h4>
+          <p class="text-xs text-gray-400 mt-1">RFWaveCode is currently structuring Phase II teaming agreements and technology transfer protocols.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <a href="mailto:support@rfwavecode.com" class="px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-xs flex items-center space-x-2 hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/20">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Contact Technical Team</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-900 bg-gray-950/80 py-4 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500">
+      <div>&copy; 2026 RFWaveCode LLC. All Rights Reserved. DOE SBIR Phase I Technical Framework.</div>
+      <div class="flex items-center space-x-4 mt-2 sm:mt-0 font-mono">
+        <span>Target: OREM / EMWMF</span>
+        <span>•</span>
+        <span>DOE FY26 Phase I ($300k)</span>
+        <span>•</span>
+        <a href="mailto:support@rfwavecode.com" class="text-cyan-400 hover:underline">support@rfwavecode.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================== -->
+  <!-- JAVASCRIPT: APPLICATION LOGIC, CANVAS, CHARTS & CONTROLLER -->
+  <!-- ========================================================== -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Tab Mapping Dictionary
+    const tabMapping = {
+      'sim': { viewId: 'viewSim', btnId: 'tabBtnSim' },
+      'physics': { viewId: 'viewPhysics', btnId: 'tabBtnPhysics' },
+      'proposal': { viewId: 'viewProposal', btnId: 'tabBtnProposal' },
+      'arr': { viewId: 'viewARR', btnId: 'tabBtnARR' }
+    };
+
+    function switchTab(activeKey) {
+      Object.keys(tabMapping).forEach(key => {
+        const item = tabMapping[key];
+        const viewEl = document.getElementById(item.viewId);
+        const btnEl = document.getElementById(item.btnId);
+
+        if (key === activeKey) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = "px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition bg-cyan-500/20 text-cyan-300 border border-cyan-500/40";
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = "px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition text-gray-400 hover:text-gray-200";
+        }
+      });
+
+      // Typeset MathJax dynamically whenever view changes
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+
+      // Re-trigger canvas size if switching back to sim
+      if (activeKey === 'sim') {
+        setTimeout(() => {
+          resizeCanvas();
+        }, 50);
+      }
+    }
+
+    // ==========================================
+    // SIMULATION STATE & KINETIC ENGINE
+    // ==========================================
+    const simState = {
+      pressure: 22.4, // MPa (Critical = 7.38)
+      temp: 45.0,     // °C  (Critical = 31.1)
+      ligandConc: 0.035, // mol%
+      density: 784.2, // kg/m^3
+      recoveryPct: 96.8,
+      ligandPurity: 99.4,
+      disposalSavings: 18420,
+      mode: 'optimal', // 'optimal', 'subcritical', 'recovery'
+      particles: [],
+      poreMatrix: [],
+      timeStep: 0
+    };
+
+    // DOM Elements
+    const sliderPressure = document.getElementById('sliderPressure');
+    const sliderTemp = document.getElementById('sliderTemp');
+    const sliderLigand = document.getElementById('sliderLigand');
+
+    const valPressure = document.getElementById('valPressure');
+    const valTemp = document.getElementById('valTemp');
+    const valLigand = document.getElementById('valLigand');
+
+    const dispDensity = document.getElementById('dispDensity');
+    const dispStripped = document.getElementById('dispStripped');
+    const dispLigand = document.getElementById('dispLigand');
+    const dispSavings = document.getElementById('dispSavings');
+
+    const systemModeBadge = document.getElementById('systemModeBadge');
+    const observerAlert = document.getElementById('observerAlert');
+    const observerAlertText = document.getElementById('observerAlertText');
+
+    // Calculate approximate CO2 density (simplified Peng-Robinson correlation for scCO2)
+    function calculateDensity(P, T) {
+      const T_K = T + 273.15;
+      const P_bar = P * 10;
+      // High-pressure empirical density approximation
+      if (P < 7.38 || T < 31.1) {
+        return Math.max(120, Math.min(480, (P * 20) - (T * 3)));
+      }
+      const reducedP = P / 7.38;
+      const reducedT = T_K / 304.25;
+      const rho = 468 + (280 * (reducedP / 3.0)) - (110 * (reducedT - 1.0));
+      return Math.min(950, Math.max(520, rho));
+    }
+
+    function updateSimulationParams() {
+      simState.pressure = parseFloat(sliderPressure.value);
+      simState.temp = parseFloat(sliderTemp.value);
+      simState.ligandConc = parseFloat(sliderLigand.value);
+
+      valPressure.innerText = simState.pressure.toFixed(1) + ' MPa';
+      valTemp.innerText = simState.temp.toFixed(1) + ' °C';
+      valLigand.innerText = simState.ligandConc.toFixed(3) + ' mol%';
+
+      // Calculate state density
+      simState.density = calculateDensity(simState.pressure, simState.temp);
+      dispDensity.innerText = simState.density.toFixed(1) + ' kg/m³';
+
+      // Evaluate Mode
+      if (simState.pressure < 7.38 || simState.temp < 31.1) {
+        simState.mode = 'subcritical';
+        systemModeBadge.className = "px-2.5 py-0.5 text-xs font-mono font-semibold rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse";
+        systemModeBadge.innerText = "FAULT: SUBCRITICAL PHASE (SOLVATION COLLAPSE)";
+        
+        simState.recoveryPct = Math.max(22.0, simState.recoveryPct - 0.4);
+        simState.disposalSavings = 4200;
+
+        observerAlert.className = "mt-4 p-2.5 rounded-lg bg-rose-950/60 border border-rose-500/50 text-[11px] font-mono text-rose-300 flex items-center space-x-2";
+        observerAlertText.innerText = "State Observer Warning: Pressure/Temp fell below critical envelope. Supercritical density lost. Immediate re-pressurization required.";
+      } else {
+        simState.mode = 'optimal';
+        systemModeBadge.className = "px-2.5 py-0.5 text-xs font-mono font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40";
+        systemModeBadge.innerText = "OPTIMAL SUPERCRITICAL PHASE";
+
+        // Performance scales with density and ligand availability
+        const densityFactor = (simState.density - 500) / 450;
+        const ligandFactor = simState.ligandConc / 0.035;
+        const targetRecovery = Math.min(99.2, 88.0 + (densityFactor * 7.0) + (ligandFactor * 3.5));
+        
+        simState.recoveryPct = (simState.recoveryPct * 0.95) + (targetRecovery * 0.05);
+        simState.disposalSavings = Math.round(14000 + (simState.recoveryPct * 45));
+
+        observerAlert.className = "mt-4 p-2.5 rounded-lg bg-gray-950 border border-gray-800 text-[11px] font-mono text-gray-400 flex items-center space-x-2";
+        observerAlertText.innerText = "State Observer: Supercritical state stable within nominal EM clearance corridor. Zero secondary liquid generated.";
+      }
+
+      dispStripped.innerText = simState.recoveryPct.toFixed(1) + '%';
+      dispSavings.innerText = '$' + simState.disposalSavings.toLocaleString() + ' / yd³';
+
+      // Update Chart Active Marker
+      updatePhaseSpaceActivePoint();
+    }
+
+    sliderPressure.addEventListener('input', updateSimulationParams);
+    sliderTemp.addEventListener('input', updateSimulationParams);
+    sliderLigand.addEventListener('input', updateSimulationParams);
+
+    function resetNominalParams() {
+      sliderPressure.value = 22.4;
+      sliderTemp.value = 45.0;
+      sliderLigand.value = 0.035;
+      updateSimulationParams();
+    }
+
+    function injectSubcriticalDrop() {
+      sliderPressure.value = 6.2; // Subcritical drop
+      sliderTemp.value = 28.0;
+      updateSimulationParams();
+    }
+
+    function triggerAutonomousRecovery() {
+      sliderPressure.value = 24.0;
+      sliderTemp.value = 48.0;
+      sliderLigand.value = 0.040;
+      updateSimulationParams();
+      observerAlert.className = "mt-4 p-2.5 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-[11px] font-mono text-cyan-300 flex items-center space-x-2";
+      observerAlertText.innerText = "Autonomous Recovery: Pump throttled to 24.0 MPa, fluid heaters elevated to 48.0°C. High-density extraction restored.";
+    }
+
+    // ==========================================
+    // CANVAS SIMULATION: VESSEL & MICRO-PORES
+    // ==========================================
+    const canvas = document.getElementById('extractionCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 320;
+      canvas.width = w * window.devicePixelRatio;
+      canvas.height = h * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize particles & porous matrix nodes
+    function initParticles() {
+      simState.particles = [];
+      const particleCount = 75;
+      for (let i = 0; i < particleCount; i++) {
+        simState.particles.push({
+          x: Math.random() * 550,
+          y: Math.random() * 300,
+          vx: (Math.random() - 0.5) * 2.2,
+          vy: (Math.random() - 0.5) * 2.2,
+          type: Math.random() > 0.35 ? 'co2' : 'ligand',
+          size: Math.random() * 2.5 + 1.5
+        });
+      }
+
+      // Concrete aggregate boulders inside cell
+      simState.poreMatrix = [
+        { x: 120, y: 150, r: 65, extracted: 0.1 },
+        { x: 280, y: 160, r: 85, extracted: 0.1 },
+        { x: 440, y: 145, r: 70, extracted: 0.1 }
+      ];
+    }
+
+    function drawVessel() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Autoclave Vessel Shell
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(10, 10, w - 20, h - 20);
+
+      // Fluid Background Tint based on Phase State
+      if (simState.mode === 'subcritical') {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.05)'; // Light red warning
+      } else {
+        const alpha = Math.min(0.25, Math.max(0.08, (simState.density - 500) / 1600));
+        ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`; // Cyan supercritical fluid density
+      }
+      ctx.fillRect(10, 10, w - 20, h - 20);
+
+      // Draw Concrete Aggregate Rocks
+      simState.poreMatrix.forEach((rock, idx) => {
+        // Draw porous matrix core
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
+        ctx.fillStyle = '#1e293b';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#334155';
+        ctx.stroke();
+
+        // Subsurface pore extraction halo
+        const haloR = rock.r * (simState.recoveryPct / 100);
+        ctx.beginPath();
+        ctx.arc(rock.x, rock.y, haloR, 0, Math.PI * 2);
+        ctx.strokeStyle = simState.mode === 'subcritical' ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Rock Label
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(`AGGREGATE #${idx + 1}`, rock.x, rock.y - 12);
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(`DECONTAM: ${simState.recoveryPct.toFixed(0)}%`, rock.x, rock.y + 6);
+        ctx.restore();
+      });
+
+      // Flowing Fluid / Ligand Particles
+      simState.particles.forEach(p => {
+        // Velocity scaled by state
+        const speedMultiplier = simState.mode === 'subcritical' ? 0.6 : 1.4;
+        p.x += p.vx * speedMultiplier;
+        p.y += p.vy * speedMultiplier;
+
+        // Bounce on boundaries
+        if (p.x < 15 || p.x > w - 15) p.vx *= -1;
+        if (p.y < 15 || p.y > h - 15) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        if (p.type === 'co2') {
+          ctx.fillStyle = simState.mode === 'subcritical' ? '#f87171' : '#38bdf8';
+        } else {
+          ctx.fillStyle = '#fbbf24'; // Ligand / chelate
+        }
+        ctx.fill();
+      });
+
+      // Flow Direction Lines (representing closed-loop fluid recycling)
+      ctx.strokeStyle = simState.mode === 'subcritical' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(6, 182, 212, 0.25)';
+      ctx.lineWidth = 1.5;
+      const t = simState.timeStep * 0.05;
+      for (let y = 35; y < h - 35; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(25, y + Math.sin(t + y) * 4);
+        ctx.lineTo(w - 25, y + Math.cos(t + y) * 4);
+        ctx.stroke();
+      }
+
+      simState.timeStep++;
+    }
+
+    function simLoop() {
+      drawVessel();
+      requestAnimationFrame(simLoop);
+    }
+
+    // ==========================================
+    // CHART.JS INITIALIZATION
+    // ==========================================
+    let phaseSpaceChart = null;
+    let kineticsChart = null;
+
+    function initCharts() {
+      // 1. Phase-Space Chart: P vs T
+      const ctxPhase = document.getElementById('phaseSpaceChart').getContext('2d');
+
+      // Theoretical Phase Boundary Curves
+      const tCurve = [15, 20, 25, 30, 31.1, 40, 50, 60, 70, 80];
+      const pCritLine = tCurve.map(() => 7.38);
+
+      phaseSpaceChart = new Chart(ctxPhase, {
+        type: 'line',
+        data: {
+          labels: tCurve,
+          datasets: [
+            {
+              label: 'Critical Pressure Line (7.38 MPa)',
+              data: pCritLine,
+              borderColor: '#f59e0b',
+              borderDash: [5, 5],
+              borderWidth: 2,
+              fill: false,
+              pointRadius: 0
+            },
+            {
+              label: 'High-Density Supercritical Corridor (>700 kg/m³)',
+              data: [18, 18.5, 19, 19.5, 20, 21.5, 23, 24.5, 26, 28],
+              borderColor: 'rgba(6, 182, 212, 0.4)',
+              backgroundColor: 'rgba(6, 182, 212, 0.12)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            },
+            {
+              label: 'Current System Operating State',
+              data: [{ x: simState.temp, y: simState.pressure }],
+              backgroundColor: '#06b6d4',
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              pointRadius: 7,
+              pointHoverRadius: 9,
+              showLine: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 10 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return `State: ${ctx.parsed.x}°C, ${ctx.parsed.y} MPa`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: {
+                display: true,
+                text: 'Fluid Temperature T (°C)',
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } },
+              min: 15,
+              max: 85
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'System Pressure P (MPa)',
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } },
+              min: 4,
+              max: 32
+            }
+          }
+        }
+      });
+
+      // 2. Kinetics Chart: Decontamination vs Time
+      const ctxKinetics = document.getElementById('kineticsChart').getContext('2d');
+      const timePoints = [0, 15, 30, 45, 60, 75, 90, 105, 120];
+
+      kineticsChart = new Chart(ctxKinetics, {
+        type: 'line',
+        data: {
+          labels: timePoints,
+          datasets: [
+            {
+              label: 'RFWaveCode scCO2 Extraction (% Mass Stripped)',
+              data: [0, 24, 52, 73, 86, 92, 95.8, 97.4, 98.2],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2,
+              pointBackgroundColor: '#10b981'
+            },
+            {
+              label: 'DOE Free-Release Target Threshold (95%)',
+              data: [95, 95, 95, 95, 95, 95, 95, 95, 95],
+              borderColor: '#ef4444',
+              borderDash: [6, 4],
+              borderWidth: 1.5,
+              fill: false,
+              pointRadius: 0
+            },
+            {
+              label: 'Conventional Aqueous Acid Washing (Secondary Waste Bottleneck)',
+              data: [0, 15, 34, 48, 59, 67, 72, 75, 76],
+              borderColor: '#64748b',
+              borderDash: [3, 3],
+              borderWidth: 1.5,
+              fill: false,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 10 }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Cycle Residence Time (Minutes)',
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Extraction Efficiency (%)',
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } },
+              min: 0,
+              max: 105
+            }
+          }
+        }
+      });
+    }
+
+    function updatePhaseSpaceActivePoint() {
+      if (!phaseSpaceChart) return;
+      phaseSpaceChart.data.datasets[2].data = [{ x: simState.temp, y: simState.pressure }];
+      phaseSpaceChart.update('none');
+    }
+
+    // On Load Initialization
+    window.onload = function() {
+      resizeCanvas();
+      initParticles();
+      initCharts();
+      updateSimulationParams();
+      requestAnimationFrame(simLoop);
+    };
+  </script>
+</body>
+</html>
